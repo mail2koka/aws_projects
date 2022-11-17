@@ -1,0 +1,137 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: HelloOPA Blog Cloudformation Stack Root Template, This template will
+  define the parameters, and will serve as the "root" stack for the network stack
+  and the service Stack.
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+    - Label:
+        default: Environment Configuration
+      Parameters:
+      - EnvironmentName
+    - Label:
+        default: Network Stack Configuration
+      Parameters:
+      - DesiredCapacity
+      - MaxSize
+      - VPCCIDR
+      - PublicCIDRA
+      - PublicCIDRB
+    - Label:
+        default: Service Stack Configuration
+      Parameters:
+      - ServiceName
+      - DesiredCount
+    ParameterLabels:
+      EnvironmentName:
+        default: Environment Name
+      DesiredCapacity:
+        default: Desired Number of EC2 Instances to provision
+      MaxSize:
+        default: Maximum Number of EC2 Instances to provision
+      VpcCIDR:
+        default: CIDR value to use for VPC the app environment VPC.
+      PublicCIDRA:
+        default: CIDR to use for public subnet A for app environment.
+      PublicCIDRB:
+        default: CIDR to use for public subnet B for app environment.
+      ServiceName:
+        default: helloopa-blog
+      DesiredCount:
+        default: 1
+Parameters:
+  EnvironmentName:
+    Type: String
+    Default: helloopa-blog-env
+    Description: 'A friendly environment name that will be used for namespacing all
+      cluster resources. Example: staging, qa, or production'
+  DesiredCapacity:
+    Type: Number
+    Default: 1
+    Description: Number of EC2 instances to launch in your ECS cluster.
+  MaxSize:
+    Type: Number
+    Default: 1
+    Description: Maximum number of EC2 instances that can be launched in your ECS
+      cluster.
+  VpcCIDR:
+    Type: String
+    Description: Please enter the IP range (CIDR notation) for this VPC
+    Default: 10.10.0.0/16
+  PublicCIDRA:
+    Type: String
+    Description: Please enter the IP range (CIDR notation) for the public subnet in
+      the first Availability Zone
+    MinLength: 9
+    MaxLength: 18
+    Default: 10.10.10.0/24
+    AllowedPattern: (\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})/(\d{1,2})
+    ConstraintDescription: Must be a valid CIDR range in the form x.x.x.x/24
+  PublicCIDRB:
+    Type: String
+    Description: Please enter the IP range (CIDR notation) for the public subnet in
+      the second Availability Zone
+    MinLength: 9
+    MaxLength: 18
+    Default: 10.10.11.0/24
+    AllowedPattern: (\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})/(\d{1,2})
+    ConstraintDescription: Must be a valid CIDR range in the form x.x.x.x/24
+  ServiceName:
+    Type: String
+    Default: helloopa-blog
+    Description: A human-readable name for the service.
+  DesiredCount:
+    Type: Number
+    Default: 1
+    Description: How many copies of the service task to run.
+Resources:
+  NetworkStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: https://s3.us-east-1.amazonaws.com/opaservice/eb3efc2cff8a76932ede15e4558a8715.template
+      Parameters:
+        EnvironmentName:
+          Ref: EnvironmentName
+        DesiredCapacity:
+          Ref: DesiredCapacity
+        MaxSize:
+          Ref: MaxSize
+        VpcCIDR:
+          Ref: VpcCIDR
+        PublicCIDRA:
+          Ref: PublicCIDRA
+        PublicCIDRB:
+          Ref: PublicCIDRB
+  ServiceStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: https://s3.us-east-1.amazonaws.com/opaservice/55d47aec215b40195c38c32a00b1bce6.template
+      Parameters:
+        EnvironmentName:
+          Ref: EnvironmentName
+        VPCId:
+          Fn::GetAtt:
+          - NetworkStack
+          - Outputs.VPCId
+        ClusterName:
+          Fn::GetAtt:
+          - NetworkStack
+          - Outputs.ClusterName
+        PublicListener:
+          Fn::GetAtt:
+          - NetworkStack
+          - Outputs.PublicListener
+        ServiceName:
+          Ref: ServiceName
+        DesiredCount:
+          Ref: DesiredCount
+        ImageUrl:
+          Fn::Sub: ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/helloopa-service:latest
+        SidecarImageUrl:
+          Fn::Sub: ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/opa-service:latest
+Outputs:
+  ApiUrl:
+    Value:
+      Fn::GetAtt:
+      - NetworkStack
+      - Outputs.ExternalUrl
