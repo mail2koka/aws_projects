@@ -3,7 +3,14 @@ FROM alpine:latest
 RUN apk --no-cache add curl  
 ADD $PWD/data /data
 VOLUME /data
-RUN curl -L -o opa https://openpolicyagent.org/downloads/v0.46.1/opa_darwin_amd64
-RUN chmod 777 ./opa 
+#WORKDIR /data
+RUN curl -L -o opa https://openpolicyagent.org/downloads/v0.46.1/opa_linux_amd64_static
+RUN chmod 755 ./opa
+RUN chmod 755 opa
+RUN ls -ltra 
 EXPOSE 8181
-CMD ./opa run -s ./data --skip-version-check
+#ENTRYPOINT ["pwd"]
+#ENTRYPOINT ["ls"]
+#CMD echo “Hello World”
+CMD ./opa run -s ./data 
+#CMD ["./opa" "run" "-s" "./data" "--skip-version-check"]

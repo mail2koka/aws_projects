@@ -39,8 +39,7 @@ app.get('/request', async (req, res, next) => {
         return
     }
     else if (!policyServiceResult) {
-        res.status(401).send("Policy Decision: " + policyServiceResult + ". User NOT authorized to access " + requestResource);
-        return
+        res.status(401).send("Policy Decision: " + policyServiceResult + ". User NOT authorized to access " + requestResource + " input json : "+requestData);        return
     }
     else {
         res.status(500).send("Policy Decision: " + policyServiceResult + ". Policy Service (OPA) unreachable or malformed response.");
